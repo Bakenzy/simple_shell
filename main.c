@@ -1,34 +1,34 @@
 #include "shell.h"
 
-void handle_signal(int signal);
-int execute_command(char **arguments, char **command_front);
+void sig_handler(int sig);
+int execute(char **args, char **front);
 
 /**
- * handle_signal - Signal handler to print a new prompt.
- * @signal: The signal received.
+ * sig_handler - Prints a new prompt upon a signal.
+ * @sig: The signal.
  */
-void handle_signal(int signal)
+void sig_handler(int sig)
 {
 	char *new_prompt = "\n$ ";
 
-	(void)signal;
-	signal(SIGINT, handle_signal);
+	(void)sig;
+	signal(SIGINT, sig_handler);
 	write(STDIN_FILENO, new_prompt, 3);
 }
 
 /**
- * execute_command - Executes a command in a child process.
- * @arguments: An array of command arguments.
- * @command_front: A pointer to the first argument in the array.
+ * execute - Executes a command in a child process.
+ * @args: An array of arguments.
+ * @front: A double pointer to the beginning of args.
  *
- * Return: If an error occurs - the corresponding error code.
- *         Otherwise - the exit value of the last executed command.
+ * Return: If an error occurs - a corresponding error code.
+ *         O/w - The exit value of the last executed command.
  */
-int execute_command(char **arguments, char **command_front)
+int execute(char **args, char **front)
 {
 	pid_t child_pid;
-	int status, flag = 0, exit_code = 0;
-	char *command = arguments[0];
+	int status, flag = 0, ret = 0;
+	char *command = args[0];
 
 	if (command[0] != '/' && command[0] != '.')
 	{
@@ -39,9 +39,9 @@ int execute_command(char **arguments, char **command_front)
 	if (!command || (access(command, F_OK) == -1))
 	{
 		if (errno == EACCES)
-			exit_code = create_error(arguments, 126);
+			ret = (create_error(args, 126));
 		else
-			exit_code = create_error(arguments, 127);
+			ret = (create_error(args, 127));
 	}
 	else
 	{
@@ -55,27 +55,27 @@ int execute_command(char **arguments, char **command_front)
 		}
 		if (child_pid == 0)
 		{
-			execve(command, arguments, environ);
+			execve(command, args, environ);
 			if (errno == EACCES)
-				exit_code = create_error(arguments, 126);
+				ret = (create_error(args, 126));
 			free_env();
-			free_arguments(arguments, command_front);
+			free_args(args, front);
 			free_alias_list(aliases);
-			_exit(exit_code);
+			_exit(ret);
 		}
 		else
 		{
 			wait(&status);
-			exit_code = WEXITSTATUS(status);
+			ret = WEXITSTATUS(status);
 		}
 	}
 	if (flag)
 		free(command);
-	return (exit_code);
+	return (ret);
 }
 
 /**
- * main - A simple UNIX command interpreter.
+ * main - Runs a simple UNIX command interpreter.
  * @argc: The number of arguments supplied to the program.
  * @argv: An array of pointers to the arguments.
  *
@@ -83,53 +83,52 @@ int execute_command(char **arguments, char **command_front)
  */
 int main(int argc, char *argv[])
 {
-	int exit_code = 0, ret;
-	int *execution_result = &ret;
+	int ret = 0, retn;
+	int *exe_ret = &retn;
 	char *prompt = "$ ", *new_line = "\n";
 
 	name = argv[0];
 	hist = 1;
 	aliases = NULL;
-	signal(SIGINT, handle_signal);
+	signal(SIGINT, sig_handler);
 
-	*execution_result = 0;
-	environ = copy_environment();
+	*exe_ret = 0;
+	environ = _copyenv();
 	if (!environ)
 		exit(-100);
 
 	if (argc != 1)
 	{
-		exit_code = process_file_commands(argv[1], execution_result);
+		ret = proc_file_commands(argv[1], exe_ret);
 		free_env();
 		free_alias_list(aliases);
-		return (*execution_result);
+		return (*exe_ret);
 	}
 
 	if (!isatty(STDIN_FILENO))
 	{
-		while (exit_code != END_OF_FILE && exit_code != EXIT)
-			exit_code = handle_arguments(execution_result);
+		while (ret != END_OF_FILE && ret != EXIT)
+			ret = handle_args(exe_ret);
 		free_env();
 		free_alias_list(aliases);
-		return (*execution_result);
+		return (*exe_ret);
 	}
 
 	while (1)
 	{
 		write(STDOUT_FILENO, prompt, 2);
-		exit_code = handle_arguments(execution_result);
-		if (exit_code == END_OF_FILE || exit_code == EXIT)
+		ret = handle_args(exe_ret);
+		if (ret == END_OF_FILE || ret == EXIT)
 		{
-			if (exit_code == END_OF_FILE)
+			if (ret == END_OF_FILE)
 				write(STDOUT_FILENO, new_line, 1);
 			free_env();
 			free_alias_list(aliases);
-			exit(*execution_result);
+			exit(*exe_ret);
 		}
 	}
 
 	free_env();
 	free_alias_list(aliases);
-	return (*execution_result);
+	return (*exe_ret);
 }
-

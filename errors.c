@@ -1,16 +1,16 @@
 #include "shell.h"
 
-int calculateDigitLength(int num);
-char *convertIntToString(int num);
-int handleError(char **args, int err);
+int num_len(int num);
+char *_itoa(int num);
+int create_error(char **args, int err);
 
 /**
- * calculateDigitLength - Calculates the length of digits in a number.
+ * num_len - Counts the digit length of a number.
  * @num: The number to measure.
  *
  * Return: The digit length.
  */
-int calculateDigitLength(int num)
+int num_len(int num)
 {
 	unsigned int num1;
 	int len = 1;
@@ -24,7 +24,6 @@ int calculateDigitLength(int num)
 	{
 		num1 = num;
 	}
-
 	while (num1 > 9)
 	{
 		len++;
@@ -35,15 +34,15 @@ int calculateDigitLength(int num)
 }
 
 /**
- * convertIntToString - Converts an integer to a string.
+ * _itoa - Converts an integer to a string.
  * @num: The integer.
  *
  * Return: The converted string.
  */
-char *convertIntToString(int num)
+char *_itoa(int num)
 {
 	char *buffer;
-	int len = calculateDigitLength(num);
+	int len = num_len(num);
 	unsigned int num1;
 
 	buffer = malloc(sizeof(char) * (len + 1));
@@ -63,9 +62,8 @@ char *convertIntToString(int num)
 	}
 
 	len--;
-
 	do {
-		buffer[len] = ((num1 % 10) + '0');
+		buffer[len] = (num1 % 10) + '0';
 		num1 /= 10;
 		len--;
 	} while (num1 > 0);
@@ -73,46 +71,45 @@ char *convertIntToString(int num)
 	return (buffer);
 }
 
+
 /**
- * handleError - Writes a custom error message to stderr.
+ * create_error - Writes a custom error message to stderr.
  * @args: An array of arguments.
  * @err: The error value.
  *
  * Return: The error value.
  */
-int handleError(char **args, int err)
+int create_error(char **args, int err)
 {
 	char *error;
 
 	switch (err)
 	{
 	case -1:
-		error = generateEnvironmentError(args);
+		error = error_env(args);
 		break;
 	case 1:
-		error = generateError1(args);
+		error = error_1(args);
 		break;
 	case 2:
-		if (*args[0] == 'e')
-			error = generateError2Exit(++args);
+		if (*(args[0]) == 'e')
+			error = error_2_exit(++args);
 		else if (args[0][0] == ';' || args[0][0] == '&' || args[0][0] == '|')
-			error = generateSyntaxError(args);
+			error = error_2_syntax(args);
 		else
-			error = generateError2Cd(args);
+			error = error_2_cd(args);
 		break;
 	case 126:
-		error = generatePermissionDeniedError(args);
+		error = error_126(args);
 		break;
 	case 127:
-		error = generateCommandNotFoundError(args);
+		error = error_127(args);
 		break;
 	}
-
 	write(STDERR_FILENO, error, _strlen(error));
 
 	if (error)
 		free(error);
-
 	return (err);
-}
 
+}

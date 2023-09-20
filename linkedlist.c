@@ -1,8 +1,13 @@
 #include "shell.h"
 
+alias_t *add_alias_end(alias_t **head, char *name, char *value);
+void free_alias_list(alias_t *head);
+list_t *add_node_end(list_t **head, char *dir);
+void free_list(list_t *head);
+
 /**
- * add_alias_end - Adds a node to the end of an alias list.
- * @head: A pointer to the head of the alias list.
+ * add_alias_end - Adds a node to the end of a alias_t linked list.
+ * @head: A pointer to the head of the list_t list.
  * @name: The name of the new alias to be added.
  * @value: The value of the new alias to be added.
  *
@@ -11,47 +16,38 @@
  */
 alias_t *add_alias_end(alias_t **head, char *name, char *value)
 {
-	alias_t *new_alias = malloc(sizeof(alias_t));
+	alias_t *new_node = malloc(sizeof(alias_t));
 	alias_t *last;
 
-	if (!new_alias)
+	if (!new_node)
 		return (NULL);
 
-	new_alias->next = NULL;
-	new_alias->name = malloc(sizeof(char) * (strlen(name) + 1));
-	if (!new_alias->name)
+	new_node->next = NULL;
+	new_node->name = malloc(sizeof(char) * (_strlen(name) + 1));
+	if (!new_node->name)
 	{
-		free(new_alias);
+		free(new_node);
 		return (NULL);
 	}
-	strcpy(new_alias->name, name);
-	new_alias->value = malloc(sizeof(char) * (strlen(value) + 1));
-	if (!new_alias->value)
-	{
-		free(new_alias->name);
-		free(new_alias);
-		return (NULL);
-	}
-	strcpy(new_alias->value, value);
+	new_node->value = value;
+	_strcpy(new_node->name, name);
 
 	if (*head)
 	{
 		last = *head;
 		while (last->next != NULL)
 			last = last->next;
-		last->next = new_alias;
+		last->next = new_node;
 	}
 	else
-	{
-		*head = new_alias;
-	}
+		*head = new_node;
 
-	return (new_alias);
+	return (new_node);
 }
 
 /**
- * add_node_end - Adds a node to the end of a list.
- * @head: A pointer to the head of the list.
+ * add_node_end - Adds a node to the end of a list_t linked list.
+ * @head: A pointer to the head of the list_t list.
  * @dir: The directory path for the new node to contain.
  *
  * Return: If an error occurs - NULL.
@@ -65,14 +61,7 @@ list_t *add_node_end(list_t **head, char *dir)
 	if (!new_node)
 		return (NULL);
 
-	new_node->dir = malloc(sizeof(char) * (strlen(dir) + 1));
-	if (!new_node->dir)
-	{
-		free(new_node);
-		return (NULL);
-	}
-	strcpy(new_node->dir, dir);
-
+	new_node->dir = dir;
 	new_node->next = NULL;
 
 	if (*head)
@@ -83,16 +72,14 @@ list_t *add_node_end(list_t **head, char *dir)
 		last->next = new_node;
 	}
 	else
-	{
 		*head = new_node;
-	}
 
 	return (new_node);
 }
 
 /**
- * free_alias_list - Frees an alias list.
- * @head: The head of the alias list.
+ * free_alias_list - Frees a alias_t linked list.
+ * @head: THe head of the alias_t list.
  */
 void free_alias_list(alias_t *head)
 {
@@ -109,8 +96,8 @@ void free_alias_list(alias_t *head)
 }
 
 /**
- * free_list - Frees a list.
- * @head: The head of the list.
+ * free_list - Frees a list_t linked list.
+ * @head: The head of the list_t list.
  */
 void free_list(list_t *head)
 {
