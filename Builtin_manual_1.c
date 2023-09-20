@@ -1,97 +1,150 @@
 #include "shell.h"
 
-void displayAllCommands(void);
-void displayAliasHelp(void);
-void displayCdHelp(void);
-void displayExitHelp(void);
-void displayHelpHelp(void);
+int executeAliasCommand(char **args, char __attribute__((__unused__)) **front);
+void setAlias(char *aliasName, char *value);
+void printAliases(alias_t *aliasesList);
 
 /**
- *  * displayAllCommands - Displays information about all available shellby commands.
- *   */
-void displayAllCommands(void)
+ * executeAliasCommand - Builtin command to handle aliases - prints all aliases,
+ * specific aliases, or sets an alias.
+ * @args: Array of arguments.
+ * @front: Double pointer to the beginning of args.
+ *
+ * Return: (-1) on error, 0 otherwise.
+ */
+int executeAliasCommand(char **args, char __attribute__((__unused__)) **front)
 {
-	    char *message = "Shellby - Internal Shell Commands\n";
-	        write(STDOUT_FILENO, message, _strlen(message));
-		    message = "Type 'help' to see this list.\nType 'help [COMMAND]' to get ";
-		        write(STDOUT_FILENO, message, _strlen(message));
-			    message = "information about a specific command.\n\n";
-			        write(STDOUT_FILENO, message, _strlen(message));
+	alias_t *currentAlias = aliases;
+	int i, returnValue = 0;
+	char *value;
 
-				    message = "  alias     - Handle aliases\n";
-				        write(STDOUT_FILENO, message, _strlen(message));
-					    message = "  cd        - Change the current directory\n";
-					        write(STDOUT_FILENO, message, _strlen(message));
-						    message = "  exit      - Exit the shell\n";
-						        write(STDOUT_FILENO, message, _strlen(message));
-							    message = "  env       - Display environment variables\n";
-							        write(STDOUT_FILENO, message, _strlen(message));
-								    message = "  setenv    - Set environment variables\n";
-								        write(STDOUT_FILENO, message, _strlen(message));
-									    message = "  unsetenv  - Unset environment variables\n";
-									        write(STDOUT_FILENO, message, _strlen(message));
+	if (!args[0])
+	{
+		while (currentAlias)
+		{
+			printAliases(currentAlias);
+			currentAlias = currentAlias->next;
+		}
+		return (returnValue);
+	}
+	for (i = 0; args[i]; i++)i
+	{
+		currentAlias = aliases;
+		value = _strchr(args[i], '=');
+		if (!value)
+		{
+			while (currentAlias)
+			{
+				if (_strcmp(args[i], currentAlias->name) == 0)
+				{
+					printAliases(currentAlias);
+					break;
+				}
+				currentAlias = currentAlias->next;
+			}
+			if (!currentAlias)
+				returnValue = (createError(args + i, 1));
+		}
+		else
+			setAlias(args[i], value);
+	}
+	return (returnValue);
 }
 
 /**
- *  * displayAliasHelp - Displays information about the 'alias' command.
- *   */
-void displayAliasHelp(void)
+ * setAlias - Set an alias with a new value or create a new alias.
+ * @aliasName: Name of the alias.
+ * @value: Value of the alias (with '=').
+ */
+void setAlias(char *aliasName, char *value)
 {
-	    char *message = "alias: alias [NAME[='VALUE'] ...]\n";
-	        write(STDOUT_FILENO, message, _strlen(message));
-		    message = "\tHandles shell aliases.\n\n";
-		        write(STDOUT_FILENO, message, _strlen(message));
-			    message = "\talias - Print a list of all aliases in the format NAME='VALUE'.\n";
-			        write(STDOUT_FILENO, message, _strlen(message));
-				    message = "\talias name [name2 ...] - Print specific aliases.\n";
-				        write(STDOUT_FILENO, message, _strlen(message));
-					    message = "\talias NAME='VALUE' [...] - Define or update aliases.\n";
-					        write(STDOUT_FILENO, message, _strlen(message));
+	alias_t *currentAlias = aliases;
+	int length, j, k;
+	char *newValue;
+
+	*value = '\0';
+	value++;
+	length = _strlen(value) - _strspn(value, "'\"");
+	newValue = malloc(sizeof(char) * (length + 1));
+	if (!newValue)
+		return;
+	for (j = 0, k = 0; value[j]; j++)
+	{
+		if (value[j] != '\'' && value[j] != '"')
+			newValue[k++] = value[j];
+	}
+	newValue[k] = '\0';
+	while (currentAlias)
+	{
+		if (_strcmp(aliasName, currentAlias->name) == 0)
+		{
+			free(currentAlias->value);
+			currentAlias->value = newValue;
+			break;
+		}
+		currentAlias = currentAlias->next;
+	}
+	if (!currentAlias)
+		addAliasEnd(&aliases, aliasName, newValue);
 }
 
 /**
- *  * displayCdHelp - Displays information about the 'cd' command.
- *   */
-void displayCdHelp(void)
+ * printAliases - Print an alias in the format: name='value'.
+ * @alias: Pointer to an alias.
+ */
+void printAliases(alias_t *alias)
 {
-	    char *message = "cd: cd [DIRECTORY]\n";
-	        write(STDOUT_FILENO, message, _strlen(message));
-		    message = "\tChange the current directory to DIRECTORY.\n\n";
-		        write(STDOUT_FILENO, message, _strlen(message));
-			    message = "\tIf no argument is given, cd is interpreted as 'cd $HOME'.\n";
-			        write(STDOUT_FILENO, message, _strlen(message));
-				    message = "\tIf the argument is '-', cd is interpreted as 'cd $OLDPWD'.\n";
-				        write(STDOUT_FILENO, message, _strlen(message));
-					    message = "\tEnvironment variables PWD and OLDPWD are updated after a directory change.\n";
-					        write(STDOUT_FILENO, message, _strlen(message));
+	char *aliasString;
+	int length = _strlen(alias->name) + _strlen(alias->value) + 4;
+
+	aliasString = malloc(sizeof(char) * (length + 1));
+	if (!aliasString)
+		return;
+	_strcpy(aliasString, alias->name);
+	_strcat(aliasString, "='");
+	_strcat(aliasString, alias->value);
+	_strcat(aliasString, "'\n");
+
+	write(STDOUT_FILENO, aliasString, length);
+	free(aliasString);
 }
 
 /**
- *  * displayExitHelp - Displays information about the 'exit' command.
- *   */
-void displayExitHelp(void)
+ * replaceAliases - Replace matching aliases in the arguments with their values.
+ * @args: Pointer to an array of arguments.
+ *
+ * Return: Pointer to the modified arguments.
+ */
+char **replaceAliases(char **args)
 {
-	    char *message = "exit: exit [STATUS]\n";
-	        write(STDOUT_FILENO, message, _strlen(message));
-		    message = "\tExit the shell.\n\n";
-		        write(STDOUT_FILENO, message, _strlen(message));
-			    message = "\tSTATUS is an integer used to exit the shell.\n";
-			        write(STDOUT_FILENO, message, _strlen(message));
-				    message = "\tIf no argument is given, exit is interpreted as 'exit 0'.\n";
-				        write(STDOUT_FILENO, message, _strlen(message));
+	alias_t *currentAlias;
+	int i;
+	char *newValue;
+
+	if (_strcmp(args[0], "alias") == 0)
+		return (args);
+	for (i = 0; args[i]; i++)
+	{
+		currentAlias = aliases;
+		while (currentAlias)
+		{
+			if (_strcmp(args[i], currentAlias->name) == 0)
+			{
+				newValue = malloc(sizeof(char) * (_strlen(currentAlias->value) + 1));
+				if (!newValue)
+				{
+					freeArgs(args, args);
+					return (NULL);
+				}
+				_strcpy(newValue, currentAlias->value);
+				free(args[i]);
+				args[i] = newValue;
+				i--;
+				break;
+			}
+			currentAlias = currentAlias->next;
+		}
+	}
+	return (args);
 }
 
-/**
- *  * displayHelpHelp - Displays information about the 'help' command.
- *   */
-void displayHelpHelp(void)
-{
-	    char *message = "help: help\n";
-	        write(STDOUT_FILENO, message, _strlen(message));
-		    message = "\tDisplay information about available Shellby commands.\n\n";
-		        write(STDOUT_FILENO, message, _strlen(message));
-			    message = "\thelp [COMMAND]\n";
-			        write(STDOUT_FILENO, message, _strlen(message));
-				    message = "\tDisplay specific information about a command.\n";
-				        write(STDOUT_FILENO, message, _strlen(message));
-}

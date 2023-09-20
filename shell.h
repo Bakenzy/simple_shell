@@ -1,4 +1,4 @@
-#ifndef _SHELL_H_
+fndef _SHELL_H_
 #define _SHELL_H_
 
 #include <fcntl.h>
@@ -20,21 +20,21 @@ extern int hist;
 
 typedef struct list_s
 {
-	    char *dir;
-	        struct list_s *next;
+		char *dir;
+			struct list_s *next;
 } list_t;
 
 typedef struct builtin_s
 {
-	    char *name;
-	        int (*function)(char **argv, char **front);
+		char *name;
+			int (*function)(char **argv, char **front);
 } builtin_t;
 
 typedef struct alias_s
 {
-	    char *name;
-	        char *value;
-		    struct alias_s *next;
+		char *name;
+			char *value;
+				struct alias_s *next;
 } alias_t;
 
 alias_t *aliases;
